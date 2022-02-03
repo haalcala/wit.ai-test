@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>App in Action</title>
+
+    <!-- import the webpage's stylesheet -->
+    <link rel="stylesheet" href="/style.css" />
+
+    <script>
+      var stashedAudio;
+    </script>
+    <!-- import the webpage's javascript file -->
+    <!-- Excellent audio recording library:  https://github.com/mattdiamond/Recorderjs -->
+    <script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+    <script src="/audio.js" defer></script>
+    <script src="/network.js" defer></script>
+
+  </head>
+  <body>
+    <h2>
+      1: Record
+    </h2>
+    <p>
+      <button id="record" disabled>Record audio</button>
+      <button id="stop" disabled>Stop</button>
+    </p>
+    <h2>
+      2: Verify
+    </h2>
+    <p>
+      <audio id="audio" />
+    </p>
+    <p>
+      <a id="download"></a>
+    </p>
+    <h2>
+      3: Send to Wit
+    </h2>
+    <p>
+      <button id="send" disabled>Send</button>
+    </p>
+    <p id="response">...</p>
+  </body>
+</html>
