@@ -30,7 +30,7 @@ function describeInstances(params) {
         return rej(err);
       }
 
-    //   console.log("data:", data);
+      //   console.log("data:", data);
 
       res(data);
     });
@@ -45,6 +45,29 @@ const app = express();
 // make all the files in 'public' available
 // https://expressjs.com/en/starter/static-files.html
 app.use(express.static("public"));
+
+app.use((req, res, next) => {
+  // -----------------------------------------------------------------------
+  // authentication middleware
+
+  const auth = { login: process.env.BASIC_AUTH_USER || "" + new Date(), password: process.env.BASIC_AUTH_PASS || "" + new Date() }; // change this
+
+  // parse login and password from headers
+  const b64auth = (req.headers.authorization || "").split(" ")[1] || "";
+  const [login, password] = Buffer.from(b64auth, "base64").toString().split(":");
+
+  // Verify login and password are set and correct
+  if (login && password && login === auth.login && password === auth.password) {
+    // Access granted...
+    return next();
+  }
+
+  // Access denied...
+  res.set("WWW-Authenticate", 'Basic realm="401"'); // change this
+  res.status(401).send("Authentication required."); // custom message
+
+  // -----------------------------------------------------------------------
+});
 
 // https://expressjs.com/en/starter/basic-routing.html
 app.get("/", (request, response) => {
@@ -94,13 +117,13 @@ app.post("/upload", upload.single("myfile"), async (req, res, next) => {
           if (c.confidence > 0.8) {
             const aws_resp = await describeInstances({});
 
-            console.log("aws_resp:",aws_resp);
+            console.log("aws_resp:", aws_resp);
 
             // @ts-ignore
             const ret = aws_resp.Reservations.map((r) => r.Instances.map((r) => r.Tags));
             console.log("Success", JSON.stringify(ret, null, 4));
 
-            res.json(ret);
+            res.json({wit_response: resp, attachment: {instances: ret}});
 
             return;
           }
@@ -108,7 +131,7 @@ app.post("/upload", upload.single("myfile"), async (req, res, next) => {
       }
     }
 
-    res.json(resp);
+    res.json({wit_response: resp});
   } catch (e) {
     console.log("error sending to wit: " + e);
     res.json({ error: e.message });
@@ -117,6 +140,6 @@ app.post("/upload", upload.single("myfile"), async (req, res, next) => {
 
 // listen for requests :)
 const listener = app.listen(7777, () => {
-    // @ts-ignore
+  // @ts-ignore
   console.log("Your app is listening on port " + listener.address().port);
 });
