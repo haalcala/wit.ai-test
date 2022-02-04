@@ -111,27 +111,60 @@ app.post("/upload", upload.single("myfile"), async (req, res, next) => {
     const resp = JSON.parse(`[${witResponse.data.split("\r")}]`);
     console.log("wit response: " + JSON.stringify(resp));
 
-    for (let i of resp) {
-      if (i.entities && i.entities["instances:instances"]) {
-        for (let c of i.entities["instances:instances"]) {
-          if (c.confidence > 0.8) {
-            const aws_resp = await describeInstances({});
+    const ai_result = {} as any
 
-            console.log("aws_resp:", aws_resp);
-
-            // @ts-ignore
-            const ret = aws_resp.Reservations.map((r) => r.Instances.map((r) => r.Tags));
-            console.log("Success", JSON.stringify(ret, null, 4));
-
-            res.json({wit_response: resp, attachment: {instances: ret}});
-
-            return;
-          }
+    for (let r of resp) {
+        if (r.entities) {
+            for (let i of Object.keys(r.entities)) {
+                for (let e of r.entities[i]) {
+                  if (e.confidence > 0.8) {
+                      ai_result[e.name] = e.value
+                  }
+                
+              }
+            }
         }
-      }
     }
 
-    res.json({wit_response: resp});
+    console.log("ai_result:",ai_result);
+
+    if (ai_result.instances === "instances") {
+        const aws_resp = (await describeInstances({})) as any;
+
+        console.log("aws_resp:", aws_resp);
+
+        let instances = [];
+
+        for (let r of aws_resp.Reservations) {
+          for (let s of r.Instances) {
+            const instance = { InstanceId: s.InstanceId, state: s.State } as any;
+
+            for (let t of s.Tags) {
+              if (t.Key === "Name") {
+                instance.Name = t.Value;
+
+                instances.push(instance);
+
+                break;
+              }
+            }
+          }
+        }
+
+        if (ai_result.state) {
+            instances = instances.filter(i => i.state.Name.toLowerCase() === ai_result.state.toLowerCase())
+        }
+
+        // @ts-ignore
+        const ret = { wit_response: resp, attachment: { instances: instances } };
+        console.log("Success", JSON.stringify(ret, null, 4));
+
+        res.json(ret);
+
+        return;
+    }
+
+    res.json({ wit_response: resp });
   } catch (e) {
     console.log("error sending to wit: " + e);
     res.json({ error: e.message });
